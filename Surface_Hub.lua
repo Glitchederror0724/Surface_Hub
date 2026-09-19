@@ -17,7 +17,9 @@ local settings = {
     fullbrightEnabled = false,  
     antiAFKEnabled = true,  
     noclipEnabled = false,
-    flingEnabled = false
+    flingEnabled = false,
+    aimbotEnabled = false,
+    aimbotFOV = 90
 }
 
 -- State  
@@ -361,7 +363,7 @@ local function disableNoclip()
     end  
 end
 
--- FLING SYSTEM  
+-- FLING SYSTEM (FIXED - now flings others, not self)
 local flingConnection = nil
 
 local function enableFling()  
@@ -390,19 +392,16 @@ local function enableFling()
                         -- Get direction away from player
                         local direction = (targetRoot.Position - rootPart.Position).Unit
                         
-                        -- Create BodyVelocity to fling them
-                        local flingVel = Instance.new("BodyVelocity")
-                        flingVel.Name = "SurfaceFling"
-                        flingVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        flingVel.Velocity = direction * 500 + Vector3.new(0, 100, 0)
-                        flingVel.Parent = targetRoot
+                        -- Apply force to TARGET ONLY
+                        targetRoot.AssemblyLinearVelocity = direction * 500 + Vector3.new(0, 100, 0)
                         
-                        -- Remove after a short time
-                        task.delay(0.5, function()
-                            if flingVel and flingVel.Parent then
-                                flingVel:Destroy()
+                        -- Also apply to all their parts for extra fling
+                        for _, part in ipairs(player.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.AssemblyLinearVelocity = direction * 500 + Vector3.new(0, 100, 0)
+                                part.AssemblyAngularVelocity = Vector3.new(50, 50, 50)
                             end
-                        end)
+                        end
                     end
                 end
             end  
@@ -414,6 +413,69 @@ local function disableFling()
     if flingConnection then  
         flingConnection:Disconnect()  
         flingConnection = nil  
+    end
+end
+
+-- AIMBOT SYSTEM  
+local function getClosestPlayerToCursor()  
+    local closest = nil  
+    local closestDist = math.huge
+    
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    for _, player in ipairs(Players:GetPlayers()) do  
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then  
+            local head = player.Character.Head
+            local screenPos, onScreen = Camera:WorldToScreenPoint(head.Position)
+            
+            if onScreen then
+                local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                if dist < closestDist and dist < settings.aimbotFOV then
+                    closestDist = dist
+                    closest = player
+                end
+            end
+        end  
+    end
+    
+    return closest
+end
+
+local aimbotConnection = nil
+
+local function enableAimbot()  
+    if aimbotConnection then aimbotConnection:Disconnect() end
+    
+    aimbotConnection = RunService.RenderStepped:Connect(function()  
+        if not settings.aimbotEnabled then return end
+        
+        local character = LocalPlayer.Character  
+        if not character then return end
+        
+        local target = getClosestPlayerToCursor()
+        
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            local targetPos = target.Character.Head.Position
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            
+            if rootPart then
+                -- Smooth aimbot - look at target
+                local lookAt = CFrame.lookAt(rootPart.Position, targetPos)
+                rootPart.CFrame = CFrame.new(rootPart.Position, targetPos)
+                
+                -- Also rotate camera slightly toward target
+                local camCF = Camera.CFrame
+                local newCamCF = CFrame.lookAt(camCF.Position, targetPos)
+                Camera.CFrame = newCamCF
+            end
+        end
+    end)  
+end
+
+local function disableAimbot()  
+    if aimbotConnection then  
+        aimbotConnection:Disconnect()  
+        aimbotConnection = nil  
     end
 end
 
@@ -932,7 +994,7 @@ createSlider(frames["Movement"], "Walk Speed", 10, 200, settings.walkSpeed, func
     end  
 end)
 
--- NOCLIP TOGGLE (now after sliders so it doesn't cover them)
+-- NOCLIP TOGGLE
 createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(value)  
     settings.noclipEnabled = value  
     if value then  
@@ -943,11 +1005,11 @@ createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(valu
 end)
 
 -- COMBAT TAB  
+-- FLING TOGGLE (FIXED)
 createToggle(frames["Combat"], "Fling", settings.flingEnabled, function(value)  
     settings.flingEnabled = value  
     if value then  
         enableFling()  
-        -- Show notification
         local notification = Instance.new("TextLabel")
         notification.Size = UDim2.new(0, 200, 0, 30)
         notification.Position = UDim2.new(0.5, -100, 0.8, 0)
@@ -964,6 +1026,34 @@ createToggle(frames["Combat"], "Fling", settings.flingEnabled, function(value)
     else  
         disableFling()  
     end  
+end)
+
+-- AIMBOT TOGGLE
+createToggle(frames["Combat"], "Aimbot", settings.aimbotEnabled, function(value)  
+    settings.aimbotEnabled = value  
+    if value then  
+        enableAimbot()  
+        local notification = Instance.new("TextLabel")
+        notification.Size = UDim2.new(0, 200, 0, 30)
+        notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+        notification.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        notification.Text = "Aimbot Enabled - Locks onto nearest target"
+        notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notification.Font = Enum.Font.SourceSansBold
+        notification.TextSize = 12
+        notification.Parent = ScreenGui
+        
+        task.delay(3, function()
+            notification:Destroy()
+        end)
+    else  
+        disableAimbot()  
+    end  
+end)
+
+-- AIMBOT FOV SLIDER
+createSlider(frames["Combat"], "Aimbot FOV", 30, 180, settings.aimbotFOV, function(value)  
+    settings.aimbotFOV = value  
 end)
 
 -- VISUAL TAB  
