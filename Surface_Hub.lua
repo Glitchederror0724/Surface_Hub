@@ -11,10 +11,9 @@ local LocalPlayer = Players.LocalPlayer
 -- Settings  
 local settings = {  
     flySpeed = 50,  
+    walkSpeed = 16,  
     espEnabled = true,  
     espColor = Color3.fromRGB(255, 0, 0),  
-    walkSpeed = 16,  
-    jumpPower = 50,  
     fullbrightEnabled = false,  
     antiAFKEnabled = true,  
     noclipEnabled = false  
@@ -31,7 +30,7 @@ local guiVisible = true
 
 -- GUI Setup  
 local ScreenGui = Instance.new("ScreenGui")  
-ScreenGui.Name = "SurfaceUltimateGUI"  
+ScreenGui.Name = "SurfaceHubGUI"  
 ScreenGui.ResetOnSpawn = false  
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -54,7 +53,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -30, 1, 0)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Surface Ultimate v5.1"  
+Title.Text = "Surface Hub v1.0"  
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)  
 Title.Font = Enum.Font.SourceSansBold  
 Title.TextSize = 20  
@@ -225,126 +224,6 @@ local function createSlider(parent, text, min, max, default, callback)
         label.Text = text .. ": " .. value  
         callback(value)  
     end)  
-end
-
--- SCRIPT LOADER  
-local function loadScriptFromUrl(url)  
-    if not url or url == "" then  
-        warn("Please enter a valid URL")  
-        return  
-    end
-
-    local loadingLabel = Instance.new("TextLabel")  
-    loadingLabel.Size = UDim2.new(0, 200, 0, 30)  
-    loadingLabel.Position = UDim2.new(0.5, -100, 0.7, 0)  
-    loadingLabel.BackgroundColor3 = Color3.fromRGB(255, 165, 0)  
-    loadingLabel.Text = "Loading script..."  
-    loadingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  
-    loadingLabel.Font = Enum.Font.SourceSansBold  
-    loadingLabel.TextSize = 14  
-    loadingLabel.Parent = ScreenGui
-
-    local success, result = pcall(function()  
-        local content = HttpService:GetAsync(url)  
-        if not content or content == "" then  
-            error("Failed to fetch URL - empty response")  
-        end
-
-        local func = loadstring(content)  
-        if not func then  
-            error("Failed to compile script - invalid Lua code")  
-        end
-
-        func()  
-    end)
-
-    task.delay(2, function()  
-        loadingLabel:Destroy()  
-    end)
-
-    if success then  
-        local successLabel = Instance.new("TextLabel")  
-        successLabel.Size = UDim2.new(0, 200, 0, 30)  
-        successLabel.Position = UDim2.new(0.5, -100, 0.7, 0)  
-        successLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)  
-        successLabel.Text = "Script loaded successfully!"  
-        successLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  
-        successLabel.Font = Enum.Font.SourceSansBold  
-        successLabel.TextSize = 14  
-        successLabel.Parent = ScreenGui
-
-        task.delay(2, function()  
-            successLabel:Destroy()  
-        end)  
-    else  
-        warn("Script load error: " .. tostring(result))
-
-        local errorLabel = Instance.new("TextLabel")  
-        errorLabel.Size = UDim2.new(0, 200, 0, 30)  
-        errorLabel.Position = UDim2.new(0.5, -100, 0.7, 0)  
-        errorLabel.BackgroundColor3 = Color3.fromRGB(200, 0, 0)  
-        errorLabel.Text = "Error: " .. tostring(result)  
-        errorLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  
-        errorLabel.Font = Enum.Font.SourceSansBold  
-        errorLabel.TextSize = 12  
-        errorLabel.Parent = ScreenGui
-
-        task.delay(3, function()  
-            errorLabel:Destroy()  
-        end)  
-    end  
-end
-
-local function createTextBox(parent, placeholder, executeText)  
-    local frame = Instance.new("Frame")  
-    frame.Size = UDim2.new(0.9, 0, 0, 60)  
-    frame.Position = UDim2.new(0.05, 0, 0, #parent:GetChildren() * 65)  
-    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)  
-    frame.Parent = parent
-
-    local textBox = Instance.new("TextBox")  
-    textBox.Size = UDim2.new(0.95, 0, 0, 25)  
-    textBox.Position = UDim2.new(0.025, 0, 0.05, 0)  
-    textBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)  
-    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)  
-    textBox.Font = Enum.Font.SourceSans  
-    textBox.TextSize = 14  
-    textBox.PlaceholderText = placeholder  
-    textBox.Text = ""  
-    textBox.ClearTextOnFocus = true  
-    textBox.Parent = frame
-
-    local executeBtn = Instance.new("TextButton")  
-    executeBtn.Size = UDim2.new(0.95, 0, 0, 25)  
-    executeBtn.Position = UDim2.new(0.025, 0, 0.55, 0)  
-    executeBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)  
-    executeBtn.Text = executeText  
-    executeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)  
-    executeBtn.Font = Enum.Font.SourceSansBold  
-    executeBtn.TextSize = 14  
-    executeBtn.Parent = frame
-
-    executeBtn.MouseButton1Click:Connect(function()  
-        local url = textBox.Text or ""  
-        url = url:gsub("%s+", "")  
-        if url ~= "" then  
-            loadScriptFromUrl(url)  
-        else  
-            warn("Please enter a script URL")  
-        end  
-    end)
-
-    textBox.FocusLost:Connect(function(enterPressed)  
-        if enterPressed then  
-            local url = textBox.Text or ""  
-            url = url:gsub("%s+", "")  
-            if url ~= "" then  
-                loadScriptFromUrl(url)  
-            end  
-        end  
-    end)
-
-    return {textBox = textBox, executeBtn = executeBtn}  
 end
 
 -- FLY SYSTEM  
@@ -649,6 +528,83 @@ end)
 -- ============================================
 
 local gameHubScripts = {
+    ["Murder Mystery 2"] = {
+        id = 142823291,
+        script = [[
+            -- MM2 Script
+            local Players = game:GetService("Players")
+            local LocalPlayer = Players.LocalPlayer
+
+            -- Speed
+            LocalPlayer.Character.Humanoid.WalkSpeed = 100
+
+            -- ESP
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local esp = Instance.new("BillboardGui")
+                    esp.Size = UDim2.new(0, 100, 0, 30)
+                    esp.Adornee = player.Character:FindFirstChild("Head")
+                    esp.AlwaysOnTop = true
+                    esp.Parent = player.Character
+                    
+                    local label = Instance.new("TextLabel")
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.BackgroundTransparency = 1
+                    label.Text = player.Name
+                    label.TextColor3 = Color3.fromRGB(255, 0, 0)
+                    label.TextStrokeTransparency = 0
+                    label.Font = Enum.Font.SourceSansBold
+                    label.TextSize = 14
+                    label.Parent = esp
+                end
+            end
+
+            print("MM2 Script Loaded!")
+        ]]
+    },
+    
+    ["Piggy"] = {
+        id = 4623386862,
+        script = [[
+            -- Piggy Script
+            local Players = game:GetService("Players")
+            local LocalPlayer = Players.LocalPlayer
+
+            -- Speed
+            LocalPlayer.Character.Humanoid.WalkSpeed = 150
+
+            -- Noclip
+            game:GetService("RunService").Stepped:Connect(function()
+                for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end)
+
+            print("Piggy Script Loaded!")
+        ]]
+    },
+    
+    ["Animal Hospital"] = {
+        id = 2436558316,
+        script = [[
+            -- Animal Hospital Script
+            local Players = game:GetService("Players")
+            local LocalPlayer = Players.LocalPlayer
+
+            -- Speed
+            LocalPlayer.Character.Humanoid.WalkSpeed = 100
+
+            -- Infinite Jump
+            game:GetService("UserInputService").JumpRequest:Connect(function()
+                LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end)
+
+            print("Animal Hospital Script Loaded!")
+        ]]
+    },
+    
     ["Dandy's World"] = {
         id = 18378383072,
         script = [[
@@ -769,32 +725,45 @@ local gameHubScripts = {
         ]]
     },
     
-    ["Blox Fruits"] = {
-        id = 2753915549,
+    ["Demonology"] = {
+        id = 3466936693,
         script = [[
-            -- Blox Fruits Script (Basic)
+            -- Demonology Script
             local Players = game:GetService("Players")
             local LocalPlayer = Players.LocalPlayer
 
+            -- Speed
             LocalPlayer.Character.Humanoid.WalkSpeed = 100
 
+            -- Noclip
+            game:GetService("RunService").Stepped:Connect(function()
+                for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end)
+
+            -- Infinite Jump
             game:GetService("UserInputService").JumpRequest:Connect(function()
                 LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end)
 
-            print("Blox Fruits Script Loaded!")
+            print("Demonology Script Loaded!")
         ]]
     },
     
-    ["Tower of Hell"] = {
-        id = 4623386862,
+    ["Jailbreak"] = {
+        id = 606849621,
         script = [[
-            -- Tower of Hell Script
+            -- Jailbreak Script
             local Players = game:GetService("Players")
             local LocalPlayer = Players.LocalPlayer
 
-            LocalPlayer.Character.Humanoid.WalkSpeed = 200
+            -- Speed
+            LocalPlayer.Character.Humanoid.WalkSpeed = 100
 
+            -- Noclip
             game:GetService("RunService").Stepped:Connect(function()
                 for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -803,126 +772,12 @@ local gameHubScripts = {
                 end
             end)
 
-            print("Tower of Hell Script Loaded!")
-        ]]
-    },
-    
-    ["Arsenal"] = {
-        id = 286090429,
-        script = [[
-            -- Arsenal Script (Aimbot Basic)
-            local Players = game:GetService("Players")
-            local RunService = game:GetService("RunService")
-            local LocalPlayer = Players.LocalPlayer
-            local Camera = workspace.CurrentCamera
-
-            RunService.RenderStepped:Connect(function()
-                local closest = nil
-                local closestDist = math.huge
-                
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                        local screenPos, onScreen = Camera:WorldToScreenPoint(player.Character.Head.Position)
-                        if onScreen then
-                            local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                            if dist < closestDist then
-                                closestDist = dist
-                                closest = player
-                            end
-                        end
-                    end
-                end
-                
-                if closest then
-                    -- Simple aim assist
-                end
+            -- Infinite Jump
+            game:GetService("UserInputService").JumpRequest:Connect(function()
+                LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end)
 
-            print("Arsenal Script Loaded!")
-        ]]
-    },
-    
-    ["Brookhaven"] = {
-        id = 4924922222,
-        script = [[
-            -- Brookhaven Script
-            local Players = game:GetService("Players")
-            local LocalPlayer = Players.LocalPlayer
-
-            LocalPlayer.Character.Humanoid.WalkSpeed = 100
-
-            local flying = false
-            local UserInputService = game:GetService("UserInputService")
-
-            UserInputService.InputBegan:Connect(function(input)
-                if input.KeyCode == Enum.KeyCode.F then
-                    flying = not flying
-                    if flying then
-                        local bv = Instance.new("BodyVelocity")
-                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bv.Parent = LocalPlayer.Character.HumanoidRootPart
-                    else
-                        local bv = LocalPlayer.Character.HumanoidRootPart:FindFirstChildOfClass("BodyVelocity")
-                        if bv then bv:Destroy() end
-                    end
-                end
-            end)
-
-            print("Brookhaven Script Loaded!")
-        ]]
-    },
-    
-    ["Piggy"] = {
-        id = 4623386862,
-        script = [[
-            -- Piggy Script
-            local Players = game:GetService("Players")
-            local LocalPlayer = Players.LocalPlayer
-
-            LocalPlayer.Character.Humanoid.WalkSpeed = 150
-
-            game:GetService("RunService").Stepped:Connect(function()
-                for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            end)
-
-            print("Piggy Script Loaded!")
-        ]]
-    },
-    
-    ["Murder Mystery 2"] = {
-        id = 142823291,
-        script = [[
-            -- MM2 Script
-            local Players = game:GetService("Players")
-            local LocalPlayer = Players.LocalPlayer
-
-            LocalPlayer.Character.Humanoid.WalkSpeed = 100
-
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local esp = Instance.new("BillboardGui")
-                    esp.Size = UDim2.new(0, 100, 0, 30)
-                    esp.Adornee = player.Character:FindFirstChild("Head")
-                    esp.AlwaysOnTop = true
-                    esp.Parent = player.Character
-                    
-                    local label = Instance.new("TextLabel")
-                    label.Size = UDim2.new(1, 0, 1, 0)
-                    label.BackgroundTransparency = 1
-                    label.Text = player.Name
-                    label.TextColor3 = Color3.fromRGB(255, 0, 0)
-                    label.TextStrokeTransparency = 0
-                    label.Font = Enum.Font.SourceSansBold
-                    label.TextSize = 14
-                    label.Parent = esp
-                end
-            end
-
-            print("MM2 Script Loaded!")
+            print("Jailbreak Script Loaded!")
         ]]
     }
 }
@@ -1015,8 +870,21 @@ createToggle(frames["Movement"], "Fly", false, function(value)
     end  
 end)
 
+-- FLY SPEED SLIDER
 createSlider(frames["Movement"], "Fly Speed", 10, 200, settings.flySpeed, function(value)  
     settings.flySpeed = value  
+end)
+
+-- WALK SPEED SLIDER
+createSlider(frames["Movement"], "Walk Speed", 10, 200, settings.walkSpeed, function(value)  
+    settings.walkSpeed = value  
+    local character = LocalPlayer.Character  
+    if character then  
+        local humanoid = character:FindFirstChildOfClass("Humanoid")  
+        if humanoid then  
+            humanoid.WalkSpeed = value  
+        end  
+    end  
 end)
 
 createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(value)  
@@ -1025,18 +893,6 @@ createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(valu
         enableNoclip()  
     else  
         disableNoclip()  
-    end  
-end)
-
-createButton(frames["Movement"], "Speed Boost", function()  
-    local character = LocalPlayer.Character  
-    if character then  
-        local humanoid = character:FindFirstChildOfClass("Humanoid")  
-        if humanoid then  
-            humanoid.WalkSpeed = settings.walkSpeed + 50  
-            task.wait(5)  
-            humanoid.WalkSpeed = settings.walkSpeed  
-        end  
     end  
 end)
 
@@ -1082,9 +938,6 @@ createButton(frames["Utility"], "Teleport to Nearest", function()
     end  
 end)
 
--- Script loader  
-createTextBox(frames["Utility"], "Enter script URL (e.g. https://pastebin.com/raw/...)", "Load Script")
-
 -- TELEPORT TAB  
 createButton(frames["Teleport"], "Refresh Player List", function()  
     refreshPlayerList()  
@@ -1125,8 +978,8 @@ local displayName = LocalPlayer.DisplayName
 local accountAge = LocalPlayer.AccountAge  
 local dateCreated = os.date("%Y-%m-%d", os.time() - (accountAge * 86400))
 
-createInfoLabel(frames["Info"], "Script: Surface Ultimate v5.1")  
-createInfoLabel(frames["Info"], "Version: 5.1")  
+createInfoLabel(frames["Info"], "Script: Surface Hub v1.0")  
+createInfoLabel(frames["Info"], "Version: 1.0")  
 createInfoLabel(frames["Info"], "Username: " .. userName)  
 createInfoLabel(frames["Info"], "Display Name: " .. displayName)  
 createInfoLabel(frames["Info"], "User ID: " .. userId)  
@@ -1136,10 +989,10 @@ createInfoLabel(frames["Info"], "Game: " .. game.Name)
 createInfoLabel(frames["Info"], "Place ID: " .. game.PlaceId)  
 createInfoLabel(frames["Info"], "Game ID: " .. game.GameId)  
 createInfoLabel(frames["Info"], "Job ID: " .. game.JobId)  
-createInfoLabel(frames["Info"], "Creator: Glitchederror0724")  
+createInfoLabel(frames["Info"], "Creator: OYB")  
 createInfoLabel(frames["Info"], "Created: 2024")  
 createInfoLabel(frames["Info"], "Status: Loaded Successfully")
 
-print("Surface Ultimate v5.1 loaded successfully!")  
+print("Surface Hub v1.0 loaded successfully!")  
 print("Welcome, " .. userName .. "!")
 print("Press RightShift to toggle GUI")
