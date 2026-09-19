@@ -16,7 +16,8 @@ local settings = {
     espColor = Color3.fromRGB(255, 0, 0),  
     fullbrightEnabled = false,  
     antiAFKEnabled = true,  
-    noclipEnabled = false  
+    noclipEnabled = false,
+    flingEnabled = false
 }
 
 -- State  
@@ -36,8 +37,8 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Main container
 local MainContainer = Instance.new("Frame")
-MainContainer.Size = UDim2.new(0, 450, 0, 500)
-MainContainer.Position = UDim2.new(0.5, -225, 0.5, -250)
+MainContainer.Size = UDim2.new(0, 450, 0, 550)
+MainContainer.Position = UDim2.new(0.5, -225, 0.5, -275)
 MainContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainContainer.Active = true
 MainContainer.Draggable = true
@@ -90,7 +91,7 @@ ContentArea.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 ContentArea.Parent = MainContainer
 
 -- Create tabs  
-local tabNames = {"Main", "Movement", "Visual", "Utility", "Teleport", "GameHub", "Info"}  
+local tabNames = {"Main", "Movement", "Combat", "Visual", "Utility", "Teleport", "GameHub", "Info"}  
 local frames = {}
 local tabButtons = {}
 
@@ -360,6 +361,62 @@ local function disableNoclip()
     end  
 end
 
+-- FLING SYSTEM  
+local flingConnection = nil
+
+local function enableFling()  
+    if flingConnection then flingConnection:Disconnect() end
+    
+    flingConnection = RunService.Stepped:Connect(function()  
+        if not settings.flingEnabled then return end
+        
+        local character = LocalPlayer.Character  
+        if not character then return end
+        
+        local rootPart = character:FindFirstChild("HumanoidRootPart")  
+        if not rootPart then return end
+        
+        -- Check for nearby players
+        for _, player in ipairs(Players:GetPlayers()) do  
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then  
+                local targetRoot = player.Character.HumanoidRootPart
+                local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                
+                -- If touching (within 5 studs)
+                if distance < 5 then
+                    -- Fling them by setting their velocity
+                    local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                    if targetHumanoid then
+                        -- Get direction away from player
+                        local direction = (targetRoot.Position - rootPart.Position).Unit
+                        
+                        -- Create BodyVelocity to fling them
+                        local flingVel = Instance.new("BodyVelocity")
+                        flingVel.Name = "SurfaceFling"
+                        flingVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                        flingVel.Velocity = direction * 500 + Vector3.new(0, 100, 0)
+                        flingVel.Parent = targetRoot
+                        
+                        -- Remove after a short time
+                        task.delay(0.5, function()
+                            if flingVel and flingVel.Parent then
+                                flingVel:Destroy()
+                            end
+                        end)
+                    end
+                end
+            end  
+        end  
+    end)  
+end
+
+local function disableFling()  
+    if flingConnection then  
+        flingConnection:Disconnect()  
+        flingConnection = nil  
+    end
+end
+
 -- ESP functions  
 local function createESP(player)  
     if player == LocalPlayer then return end  
@@ -535,10 +592,8 @@ local gameHubScripts = {
             local Players = game:GetService("Players")
             local LocalPlayer = Players.LocalPlayer
 
-            -- Speed
             LocalPlayer.Character.Humanoid.WalkSpeed = 100
 
-            -- ESP
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character then
                     local esp = Instance.new("BillboardGui")
@@ -570,10 +625,8 @@ local gameHubScripts = {
             local Players = game:GetService("Players")
             local LocalPlayer = Players.LocalPlayer
 
-            -- Speed
             LocalPlayer.Character.Humanoid.WalkSpeed = 150
 
-            -- Noclip
             game:GetService("RunService").Stepped:Connect(function()
                 for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -593,10 +646,8 @@ local gameHubScripts = {
             local Players = game:GetService("Players")
             local LocalPlayer = Players.LocalPlayer
 
-            -- Speed
             LocalPlayer.Character.Humanoid.WalkSpeed = 100
 
-            -- Infinite Jump
             game:GetService("UserInputService").JumpRequest:Connect(function()
                 LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end)
@@ -732,10 +783,8 @@ local gameHubScripts = {
             local Players = game:GetService("Players")
             local LocalPlayer = Players.LocalPlayer
 
-            -- Speed
             LocalPlayer.Character.Humanoid.WalkSpeed = 100
 
-            -- Noclip
             game:GetService("RunService").Stepped:Connect(function()
                 for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -744,7 +793,6 @@ local gameHubScripts = {
                 end
             end)
 
-            -- Infinite Jump
             game:GetService("UserInputService").JumpRequest:Connect(function()
                 LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end)
@@ -760,10 +808,8 @@ local gameHubScripts = {
             local Players = game:GetService("Players")
             local LocalPlayer = Players.LocalPlayer
 
-            -- Speed
             LocalPlayer.Character.Humanoid.WalkSpeed = 100
 
-            -- Noclip
             game:GetService("RunService").Stepped:Connect(function()
                 for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -772,7 +818,6 @@ local gameHubScripts = {
                 end
             end)
 
-            -- Infinite Jump
             game:GetService("UserInputService").JumpRequest:Connect(function()
                 LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end)
@@ -887,12 +932,37 @@ createSlider(frames["Movement"], "Walk Speed", 10, 200, settings.walkSpeed, func
     end  
 end)
 
+-- NOCLIP TOGGLE (now after sliders so it doesn't cover them)
 createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(value)  
     settings.noclipEnabled = value  
     if value then  
         enableNoclip()  
     else  
         disableNoclip()  
+    end  
+end)
+
+-- COMBAT TAB  
+createToggle(frames["Combat"], "Fling", settings.flingEnabled, function(value)  
+    settings.flingEnabled = value  
+    if value then  
+        enableFling()  
+        -- Show notification
+        local notification = Instance.new("TextLabel")
+        notification.Size = UDim2.new(0, 200, 0, 30)
+        notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+        notification.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+        notification.Text = "Fling Enabled - Touch players to fling them!"
+        notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notification.Font = Enum.Font.SourceSansBold
+        notification.TextSize = 12
+        notification.Parent = ScreenGui
+        
+        task.delay(3, function()
+            notification:Destroy()
+        end)
+    else  
+        disableFling()  
     end  
 end)
 
