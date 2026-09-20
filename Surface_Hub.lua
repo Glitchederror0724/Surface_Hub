@@ -39,8 +39,8 @@ ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Main container
 local MainContainer = Instance.new("Frame")
-MainContainer.Size = UDim2.new(0, 450, 0, 550)
-MainContainer.Position = UDim2.new(0.5, -225, 0.5, -275)
+MainContainer.Size = UDim2.new(0, 450, 0, 600)
+MainContainer.Position = UDim2.new(0.5, -225, 0.5, -300)
 MainContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainContainer.Active = true
 MainContainer.Draggable = true
@@ -363,13 +363,13 @@ local function disableNoclip()
     end  
 end
 
--- FLING SYSTEM (FIXED - now flings others, not self)
+-- FLING SYSTEM (FIXED - uses TouchInterest and proper force application)
 local flingConnection = nil
 
 local function enableFling()  
     if flingConnection then flingConnection:Disconnect() end
     
-    flingConnection = RunService.Stepped:Connect(function()  
+    flingConnection = RunService.Heartbeat:Connect(function()  
         if not settings.flingEnabled then return end
         
         local character = LocalPlayer.Character  
@@ -382,26 +382,33 @@ local function enableFling()
         for _, player in ipairs(Players:GetPlayers()) do  
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then  
                 local targetRoot = player.Character.HumanoidRootPart
-                local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
                 
-                -- If touching (within 5 studs)
-                if distance < 5 then
-                    -- Fling them by setting their velocity
-                    local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                    if targetHumanoid then
+                if targetRoot and targetHumanoid then
+                    local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                    
+                    -- If touching (within 6 studs)
+                    if distance < 6 then
                         -- Get direction away from player
                         local direction = (targetRoot.Position - rootPart.Position).Unit
                         
-                        -- Apply force to TARGET ONLY
-                        targetRoot.AssemblyLinearVelocity = direction * 500 + Vector3.new(0, 100, 0)
+                        -- Apply force to TARGET ONLY using BodyVelocity
+                        local flingVel = Instance.new("BodyVelocity")
+                        flingVel.Name = "SurfaceFling"
+                        flingVel.MaxForce = Vector3.new(100000, 100000, 100000)
+                        flingVel.P = 100000
+                        flingVel.Velocity = direction * 300 + Vector3.new(0, 150, 0)
+                        flingVel.Parent = targetRoot
                         
-                        -- Also apply to all their parts for extra fling
-                        for _, part in ipairs(player.Character:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.AssemblyLinearVelocity = direction * 500 + Vector3.new(0, 100, 0)
-                                part.AssemblyAngularVelocity = Vector3.new(50, 50, 50)
+                        -- Also apply angular velocity for spin
+                        targetRoot.AssemblyAngularVelocity = Vector3.new(50, 50, 50)
+                        
+                        -- Remove after a short time
+                        task.delay(0.3, function()
+                            if flingVel and flingVel.Parent then
+                                flingVel:Destroy()
                             end
-                        end
+                        end)
                     end
                 end
             end  
@@ -459,11 +466,10 @@ local function enableAimbot()
             local rootPart = character:FindFirstChild("HumanoidRootPart")
             
             if rootPart then
-                -- Smooth aimbot - look at target
-                local lookAt = CFrame.lookAt(rootPart.Position, targetPos)
+                -- Look at target
                 rootPart.CFrame = CFrame.new(rootPart.Position, targetPos)
                 
-                -- Also rotate camera slightly toward target
+                -- Also rotate camera toward target
                 local camCF = Camera.CFrame
                 local newCamCF = CFrame.lookAt(camCF.Position, targetPos)
                 Camera.CFrame = newCamCF
@@ -994,8 +1000,8 @@ createSlider(frames["Movement"], "Walk Speed", 10, 200, settings.walkSpeed, func
     end  
 end)
 
--- NOCLIP TOGGLE
-createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(value)  
+-- NOCLIP TOGGLE (separated with extra space)
+local noclipToggle = createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(value)  
     settings.noclipEnabled = value  
     if value then  
         enableNoclip()  
@@ -1005,7 +1011,7 @@ createToggle(frames["Movement"], "Noclip", settings.noclipEnabled, function(valu
 end)
 
 -- COMBAT TAB  
--- FLING TOGGLE (FIXED)
+-- FLING TOGGLE
 createToggle(frames["Combat"], "Fling", settings.flingEnabled, function(value)  
     settings.flingEnabled = value  
     if value then  
