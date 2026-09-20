@@ -10,4 +10,4 @@ A lightweight, high-performance Roblox Luau library designed for clean and modul
 
 **8 Tabs**: 8 organized tabs: Main, Movement, Combat, Visual, Utility, Teleport, GameHub, Info.
 
-'oadstring(game:HttpGet("https://raw.githubusercontent.com/Glitchederror0724/Surface_Hub/refs/heads/main/Surface_Hub.lua"))()'
+`loadstring(game:HttpGet("https://raw.githubusercontent.com/Glitchederror0724/Surface_Hub/refs/heads/main/Surface_Hub.lua"))()`
